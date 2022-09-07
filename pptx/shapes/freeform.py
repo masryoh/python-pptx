@@ -65,6 +65,27 @@ class FreeformBuilder(Sequence):
             self._add_close()
         return self
 
+    def add_curve_segments(self, vertices, close=True):
+        """Add a straight line segment to each point in *vertices*.
+
+        *vertices* must be an iterable of (x, y) pairs (2-tuples). Each x and
+        y value is rounded to the nearest integer before use. The optional
+        *close* parameter determines whether the resulting contour is
+        *closed* or left *open*.
+
+        Returns this |FreeformBuilder| object so it can be used in chained
+        calls.
+        """
+        for i in range(int(len(vertices)/3)):            
+            x1, y1 = vertices[3*i+0]    
+            x2, y2 = vertices[3*i+1]    
+            x3, y3 = vertices[3*i+2]    
+
+            self._add_curve_segment(x1, y1, x2, y2, x3, y3)
+        if close:
+            self._add_close()
+        return self
+
     def convert_to_shape(self, origin_x=0, origin_y=0):
         """Return new freeform shape positioned relative to specified offset.
 
@@ -136,6 +157,10 @@ class FreeformBuilder(Sequence):
     def _add_line_segment(self, x, y):
         """Add a |_LineSegment| operation to the drawing sequence."""
         self._drawing_operations.append(_LineSegment.new(self, x, y))
+        
+    def _add_curve_segment(self, x1, y1, x2, y2, x3, y3):
+        """Add a |_LineSegment| operation to the drawing sequence."""
+        self._drawing_operations.append(_CurveSegment.new(self, x1, y1, x2, y2, x3, y3))
 
     @lazyproperty
     def _drawing_operations(self):
@@ -289,6 +314,44 @@ class _LineSegment(_BaseDrawingOperation):
         return path.add_lnTo(
             self._x - self._freeform_builder.shape_offset_x,
             self._y - self._freeform_builder.shape_offset_y,
+        )
+
+
+class _CurveSegment(_BaseDrawingOperation):
+    """Specifies a straight line segment ending at the specified point."""
+
+    def __init__(self, freeform_builder, x1, y1, x2, y2, x3, y3):
+        super(_BaseDrawingOperation, self).__init__()
+        self._freeform_builder = freeform_builder
+        self._x = x1
+        self._y = y1
+        self._x2 = x2
+        self._y2 = y2
+        self._x3 = x3
+        self._y3 = y3
+
+    @classmethod
+    def new(cls, freeform_builder,  x1, y1, x2, y2, x3, y3):
+        """Return a new _CurveSegment object ending at point *(x, y)*.
+
+        Both *x* and *y* are rounded to the nearest integer before use.
+        """
+        return cls(freeform_builder, int(round(x1)), int(round(y1)),
+            int(round(x2)), int(round(y2)),
+            int(round(x3)), int(round(y3)))
+
+    def apply_operation_to(self, path):
+        """Add `a:cubicBezTo` element to *path* for this line segment.
+
+        Returns the `a:cubicBezTo` element newly added to the path.
+        """
+        return path.add_cubicBezTo(
+            self._x - self._freeform_builder.shape_offset_x,
+            self._y - self._freeform_builder.shape_offset_y,
+            self._x2 - self._freeform_builder.shape_offset_x,
+            self._y2 - self._freeform_builder.shape_offset_y,
+            self._x3 - self._freeform_builder.shape_offset_x,
+            self._y3 - self._freeform_builder.shape_offset_y,
         )
 
 

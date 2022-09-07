@@ -73,6 +73,7 @@ class CT_Path2D(BaseOxmlElement):
 
     close = ZeroOrMore("a:close", successors=())
     lnTo = ZeroOrMore("a:lnTo", successors=())
+    cubicBezTo = ZeroOrMore("a:cubicBezTo", successors=())
     moveTo = ZeroOrMore("a:moveTo", successors=())
     w = OptionalAttribute("w", ST_PositiveCoordinate)
     h = OptionalAttribute("h", ST_PositiveCoordinate)
@@ -94,6 +95,21 @@ class CT_Path2D(BaseOxmlElement):
         pt.x, pt.y = x, y
         return lnTo
 
+    def add_cubicBezTo(self, x1, y1,  x2, y2,  x3, y3):
+        """Return a newly created `a:lnTo` subtree with end point *(x, y)*.
+
+        The new `a:cubicBezTo` element is appended to this `a:path` element.
+        """
+
+        cubicBezTo = self._add_cubicBezTo()
+        pt1 = cubicBezTo._add_pt()
+        pt1.x, pt1.y = x1, y1
+        pt2 = cubicBezTo._add_pt()
+        pt2.x, pt2.y = x2, y2
+        pt3 = cubicBezTo._add_pt()
+        pt3.x, pt3.y = x3, y3
+        return cubicBezTo
+
     def add_moveTo(self, x, y):
         """Return a newly created `a:moveTo` subtree with point *(x, y)*.
 
@@ -111,6 +127,12 @@ class CT_Path2DClose(BaseOxmlElement):
 
 class CT_Path2DLineTo(BaseOxmlElement):
     """`a:lnTo` custom element class."""
+
+    pt = ZeroOrOne("a:pt", successors=())
+
+    
+class CT_Path2DCubicBezierTo(BaseOxmlElement):
+    """`a:cubicBezierTo` custom element class."""
 
     pt = ZeroOrOne("a:pt", successors=())
 
